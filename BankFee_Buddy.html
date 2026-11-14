@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BankFee Buddy — Understand your bank charges</title>
+<style>
+:root{--ink:#172b3a;--muted:#617383;--teal:#087e83;--teal2:#dff2ef;--bg:#f4f7f8;--line:#dce5e9;--white:#fff;--amber:#fff3dd}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial}
+.wrap{max-width:920px;margin:0 auto;padding:32px 18px 60px}
+header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:28px}
+.brand{font-weight:850;letter-spacing:-.5px;font-size:19px}.brand span{color:var(--teal)}
+.pill{font-size:12px;color:var(--teal);background:var(--teal2);padding:6px 10px;border-radius:999px;font-weight:700}
+.hero{margin:22px 0 24px}.eyebrow{text-transform:uppercase;letter-spacing:1.8px;font-size:11px;color:var(--teal);font-weight:800}
+h1{font-size:clamp(30px,5vw,46px);line-height:1.08;letter-spacing:-1.7px;margin:10px 0}
+.lead{color:var(--muted);max-width:660px;font-size:16px}
+.panel{background:var(--white);border:1px solid var(--line);border-radius:18px;padding:22px;box-shadow:0 8px 28px #18384a0a;margin-top:18px}
+label{display:block;font-weight:750;font-size:13px;margin:14px 0 7px}
+input,textarea,select{width:100%;border:1px solid var(--line);border-radius:10px;padding:12px 13px;font:inherit;color:var(--ink);background:white;outline:none}
+textarea{min-height:130px;resize:vertical}input:focus,textarea:focus,select:focus{border-color:var(--teal);box-shadow:0 0 0 3px #087e8318}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+button{border:0;border-radius:11px;padding:13px 18px;background:var(--teal);color:white;font-weight:800;font-size:14px;cursor:pointer;margin-top:16px}
+button:disabled{opacity:.55;cursor:wait}.hint{font-size:12px;color:var(--muted);margin-top:6px}
+.notice{background:var(--amber);border:1px solid #f0dfbd;padding:12px 14px;border-radius:12px;font-size:12px;color:#72501d;margin-top:14px}
+#status{font-size:13px;color:var(--muted);margin:12px 0 0}
+#result{display:none;margin-top:18px}.result-head{display:flex;justify-content:space-between;align-items:center;gap:10px}
+#answer{white-space:pre-wrap;font-size:14px;line-height:1.7}
+.result-label{font-size:11px;text-transform:uppercase;letter-spacing:1.4px;color:var(--teal);font-weight:800}
+footer{margin-top:22px;color:var(--muted);font-size:12px;text-align:center}
+@media(max-width:650px){.grid{grid-template-columns:1fr}.panel{padding:17px}header{align-items:flex-start;flex-direction:column}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header><div class="brand">BankFee <span>Buddy</span></div><div class="pill">AI FINANCE ASSISTANT</div></header>
+<section class="hero">
+<div class="eyebrow">Understand the fine print</div>
+<h1>What is my bank<br>charging me for?</h1>
+<p class="lead">Paste a bank fee, statement entry or charge description. BankFee Buddy explains it in plain language and helps you work out what to ask next.</p>
+</section>
+
+<section class="panel">
+<div class="grid">
+<div><label for="country">Country / banking system</label><input id="country" placeholder="e.g. India" value="India"></div>
+<div><label for="account">Account type (optional)</label><input id="account" placeholder="e.g. savings account"></div>
+</div>
+<label for="fee">Paste the fee or charge description</label>
+<textarea id="fee" placeholder="Example: AMB non-maintenance charges — ₹295 + GST&#10;Or paste the wording from your bank statement / tariff sheet."></textarea>
+<label for="context">Anything else that may help? (optional)</label>
+<input id="context" placeholder="e.g. I thought this was a zero-balance account; the charge appeared this month.">
+<label for="key">Gemini API key</label>
+<input id="key" type="password" autocomplete="off" placeholder="Paste your Google AI Studio API key">
+<div class="hint">Your key is used only for this request in this browser tab.</div>
+<button id="go" onclick="explain()">Explain this charge</button>
+<div id="status" role="status"></div>
+<div class="notice"><b>Important:</b> This is an educational project, not financial advice or an official interpretation of your bank's terms. It may be wrong or miss context. Verify fees with your bank before taking action. Never paste account numbers, card numbers, passwords, OTPs or other sensitive information.</div>
+</section>
+
+<section class="panel" id="result">
+<div class="result-head"><div class="result-label">Your explanation</div><button style="margin:0;background:#e7f3f2;color:#075f63" onclick="copyAnswer()">Copy answer</button></div>
+<div id="answer" style="margin-top:14px"></div>
+</section>
+<footer>BankFee Buddy · A small AI-powered financial-literacy project</footer>
+</div>
+<script>
+async function explain(){
+ const fee=document.getElementById('fee').value.trim();
+ const key=document.getElementById('key').value.trim();
+ const country=document.getElementById('country').value.trim()||'Not specified';
+ const account=document.getElementById('account').value.trim()||'Not specified';
+ const context=document.getElementById('context').value.trim()||'None';
+ const status=document.getElementById('status'),btn=document.getElementById('go');
+ if(!fee){status.textContent='Please paste a fee description first.';return}
+ if(!key){status.textContent='Add your Gemini API key to run the AI explanation.';return}
+ btn.disabled=true;btn.textContent='Analysing…';status.textContent='The AI is checking the wording and preparing an explanation.';
+ document.getElementById('result').style.display='none';
+ const prompt=`You are BankFee Buddy, a careful financial-literacy assistant that explains bank charges in plain language. You are not a financial adviser and must not claim certainty when the provided wording is incomplete.
+
+User context:
+Country/banking system: ${country}
+Account type: ${account}
+Additional context: ${context}
+
+Bank fee / statement wording:
+${fee}
+
+Write a useful, concise response with these exact headings:
+1. In plain English — explain what the charge appears to mean.
+2. Why it may have happened — give likely reasons, clearly label them as possibilities.
+3. Could it be avoided or disputed? — explain what information is needed; do not promise a refund or assert that the bank acted wrongly.
+4. What to ask the bank — give 3 specific questions the user can ask.
+5. How to reduce future charges — give practical, non-risky steps.
+
+Rules:
+- Use the country context and currency only where supported by the input.
+- If the description is ambiguous, say so and ask for the exact tariff wording or relevant non-sensitive details.
+- Never invent a bank policy, fee amount, deadline, legal right or regulation.
+- Distinguish a likely explanation from a confirmed fact.
+- Do not ask for account numbers, card numbers, passwords, PINs or OTPs.
+- Do not recommend financial products or investment decisions.
+- End with one sentence telling the user to verify the charge with their bank.`;
+ try{
+  const url='https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key='+encodeURIComponent(key);
+  const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:0.2,maxOutputTokens:900}})});
+  const data=await res.json();
+  if(!res.ok) throw new Error(data?.error?.message||('API request failed ('+res.status+')'));
+  const text=data?.candidates?.[0]?.content?.parts?.map(p=>p.text||'').join('\n').trim();
+  if(!text) throw new Error('The model returned no text. Try again with a shorter fee description.');
+  document.getElementById('answer').textContent=text;
+  document.getElementById('result').style.display='block';
+  status.textContent='Explanation ready. Check the uncertainty notes before acting.';
+ }catch(e){status.textContent='Could not generate an explanation: '+e.message}
+ finally{btn.disabled=false;btn.textContent='Explain this charge'}
+}
+function copyAnswer(){
+ const t=document.getElementById('answer').textContent;
+ if(navigator.clipboard?.writeText) navigator.clipboard.writeText(t).then(()=>document.getElementById('status').textContent='Answer copied.');
+ else document.getElementById('status').textContent='Select and copy the answer manually.';
+}
+</script>
+</body>
+</html>
